@@ -108,7 +108,6 @@ def main():
     # 4. GraphRAG Query Demo
     # ============================================================
     from query_engine import query_graph
-    from flat_rag import build_vector_store, query_flat_rag
 
     print("\n" + "=" * 70)
     print("STEP 3A: GraphRAG Query Demo")
@@ -129,28 +128,27 @@ def main():
             print(f"\n[GraphRAG Error]: {result['error']}")
 
     # ============================================================
-    # 5. Setup Flat RAG Vector Store
+    # 5. Setup Flat RAG (TF-IDF — lightweight, no large model)
     # ============================================================
+    from flat_rag import FlatRAG
+
     print("\n" + "=" * 70)
-    print("STEP 3B: Flat RAG — Building Vector Store")
+    print("STEP 3B: Flat RAG — Building TF-IDF Index")
     print("=" * 70)
 
-    chroma_path = os.path.join(os.path.dirname(__file__), "chroma_db")
-    import chromadb
-    client = chromadb.PersistentClient(path=chroma_path)
+    rag_dir = os.path.join(os.path.dirname(__file__), "output")
+    flat_rag = FlatRAG(persist_dir=rag_dir)
 
-    try:
-        collection = client.get_collection("ev_docs")
-        print("Using existing ChromaDB collection")
-    except:
-        print("Building new ChromaDB collection...")
-        collection = build_vector_store(documents)
+    if not flat_rag.load_index(rag_dir):
+        flat_rag.build_index(documents)
+    else:
+        print("Using existing TF-IDF index")
 
     # Demo Flat RAG queries
     print("\n--- Flat RAG Demo ---")
     for q in demo_questions:
         print(f"\n--- Query: {q} ---")
-        result = query_flat_rag(collection, q)
+        result = flat_rag.query(q)
         if result.get("answer"):
             print(f"\n[FlatRAG Answer]: {result['answer'][:300]}...")
         elif result.get("error"):
@@ -169,7 +167,7 @@ def main():
     print("STEP 4: Evaluation — Flat RAG vs GraphRAG")
     print("=" * 70)
 
-    flat_rag_fn = lambda q: query_flat_rag(collection, q)
+    flat_rag_fn = lambda q: flat_rag.query(q)
     graph_rag_fn = lambda G, q: query_graph(G, q)
 
     results = run_evaluation(flat_rag_fn, graph_rag_fn, G, eval_questions)

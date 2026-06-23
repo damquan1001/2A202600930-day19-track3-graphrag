@@ -8,9 +8,6 @@ import os
 from typing import Optional
 from config import OPENAI_API_KEY, OPENAI_BASE_URL, LLM_MODEL
 
-
-# === Token & Cost Tracking ===
-
 class UsageTracker:
     """Track token usage and timing across the pipeline."""
 
@@ -95,10 +92,9 @@ def get_llm():
 
 
 def get_embeddings():
-    """Get a local embedding model using sentence-transformers."""
-    from sentence_transformers import SentenceTransformer
-    from config import EMBEDDING_MODEL
-    return SentenceTransformer(EMBEDDING_MODEL)
+    """Get a TF-IDF vectorizer for embedding (lightweight, no GPU model load)."""
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    return TfidfVectorizer(max_features=5000, stop_words="english")
 
 
 def llm_call(prompt: str, system_prompt: str = None, max_retries: int = 2) -> tuple[str, int, int]:

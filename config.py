@@ -6,14 +6,20 @@ Loads settings from .env file or environment variables.
 import os
 from pathlib import Path
 
-# Load .env file if python-dotenv is available
-try:
-    from dotenv import load_dotenv
-    env_path = Path(__file__).parent / ".env"
-    if env_path.exists():
-        load_dotenv(env_path)
-except ImportError:
-    pass
+# Load .env file manually (no python-dotenv dependency)
+env_path = Path(__file__).parent / ".env"
+if env_path.exists():
+    with open(env_path) as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, val = line.split("=", 1)
+            key = key.strip()
+            val = val.strip().strip("\"'")
+            # Only set if not already an environment variable
+            if key not in os.environ:
+                os.environ[key] = val
 
 # --- LLM Configuration ---
 # Set your OpenAI-compatible API key in .env or as environment variable
@@ -26,7 +32,9 @@ OPENAI_BASE_URL = os.environ.get("OPENAI_BASE_URL", "")
 LLM_MODEL = os.environ.get("LLM_MODEL", "gpt-4o-mini")
 
 # --- Embedding Configuration ---
-EMBEDDING_MODEL = "all-MiniLM-L6-v2"
+# Using TF-IDF instead of sentence-transformers to avoid loading a 400MB model
+# Set to "sentence-transformers" if you want the heavier model
+EMBEDDING_BACKEND = "tfidf"
 
 # --- Paths ---
 DATASET_DIR = os.path.join(os.path.dirname(__file__), "dataset")
